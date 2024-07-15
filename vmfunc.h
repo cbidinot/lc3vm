@@ -50,3 +50,17 @@ enum {PC_START = 0x3000};
 
 extern uint16_t memory[MEMORY_MAX];
 extern uint16_t reg[R_COUNT];
+
+void add(uint16_t instr);
+void bitwise_and(uint16_t instr);
+void branch(uint16_t instr);
+void jump(uint16_t instr);
+void jump_sr(uint16_t instr);
+void load(uint16_t instr);
+void load_indirect(uint16_t instr);
+void load_baseoffset(uint16_t instr);
+void load_ea(uint16_t instr);
+void bitwise_complement(uint16_t instr);
+void store(uint16_t instr);
+void store_indirect(uint16_t instr);
+void store_baseoffset(uint16_t instr);

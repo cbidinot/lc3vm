@@ -1,5 +1,6 @@
 #include "vmfunc.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -43,24 +44,36 @@ int main (int argc, char **argv)
         switch(op)
         {
             case OP_ADD:
+                add(instr);
                 break;
             case OP_AND:
+                bitwise_and(instr);
                 break;
             case OP_NOT:
+                bitwise_complement(instr);
                 break;
             case OP_BR:
+                branch(instr);
                 break;
             case OP_JMP:
+                // also handles RET 
+                jump(instr);
                 break;
             case OP_JSR:
+                // handles both JSR and JSRR
+                jump_sr(instr);
                 break;
             case OP_LD:
+                load(instr);
                 break;
             case OP_LDI:
+                load_indirect(instr);
                 break;
             case OP_LDR:
+                load_baseoffset(instr);
                 break;
             case OP_LEA:
+                load_ea(instr);
                 break;
             case OP_ST:     
                 break;
