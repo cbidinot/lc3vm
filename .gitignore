@@ -1,0 +1,7 @@
+# ignore obj and binary
+*.o
+lc3vm
+vm
+vmfunc
+# vs code settings
+.vscode/

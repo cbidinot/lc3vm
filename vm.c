@@ -1,8 +1,13 @@
 #include "vmfunc.h"
 
-#include <stdint.h>
-#include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
+#include <sys/termios.h>
+
+uint16_t memory[MEMORY_MAX];
+uint16_t reg[R_COUNT];
+int running;
+struct termios original_tio;
 
 
 int main (int argc, char **argv) 
@@ -25,15 +30,17 @@ int main (int argc, char **argv)
         }
     }
 
-    // TODO: Setup
+    // Setup
+    signal(SIGINT, handle_interrupt);
+    disable_input_buffering(); 
 
     // Initialize condition flag with Z
     reg[R_COND] = FL_ZRO;
 
     // Initialize PC with default value
-    reg[R_PC] = PC_START;
+    reg[R_PC] = PC_START; 
 
-    int running = 1;
+    running = 1;
 
     while (running)
     {
@@ -75,24 +82,30 @@ int main (int argc, char **argv)
             case OP_LEA:
                 load_ea(instr);
                 break;
-            case OP_ST:     
+            case OP_ST:
+                store(instr);     
                 break;
             case OP_STI:
+                store_indirect(instr);
                 break;
             case OP_STR:
+                store_baseoffset(instr);
                 break;
             case OP_TRAP:
+                trap(instr);
                 break;
             // unused opcodes
             case OP_RTI:
             case OP_RES:
             default:
+                abort();
                 break;
         }
     }
 
 
-    // TODO: shutdown
+    // Shutdown
+   restore_input_buffering(); 
 
 }
 

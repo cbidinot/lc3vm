@@ -1,5 +1,7 @@
 #include "vmfunc.h"
-#include <stdint.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/termios.h>
 
 uint16_t sign_extend(uint16_t x, int bit_count)
 {
@@ -190,4 +192,153 @@ void store_baseoffset(uint16_t instr)
     uint16_t r_offset = sign_extend((instr & 0x3F), 6);
 
     mem_write(reg[r1] + r_offset, reg[r0]);
+}
+
+void trap(uint16_t instr)
+{
+    // store address at PC in r7
+    reg[R_R7] = reg[R_PC];
+
+    switch (instr & 0xFF)
+    {
+        case TRAP_GETC:
+            reg[R_R0] = getc(stdin) & 0xFF;
+            update_flags(R_R0);
+            break;
+        case TRAP_OUT:
+            putc((char) reg[R_R0], stdout);
+            fflush(stdout);
+            break;
+        case TRAP_PUTS:
+            // one character per memory location
+            {
+                uint16_t *c = memory + reg[R_R0];
+                while (*c)
+                {
+                    putc((char)*c, stdout);
+                    ++c;
+                }
+                fflush(stdout);
+                break;
+            }
+        case TRAP_IN:
+            printf("Enter a character: ");
+            reg[R_R0] = getc(stdin) & 0xFF;
+            update_flags(R_R0);
+            putc((char)reg[R_R0], stdout);
+            fflush(stdout);
+            break;
+        case TRAP_PUTSP:
+            {
+                // two characters per memory location 
+                uint16_t *c = memory + reg[R_R0];
+                while (*c)
+                {
+                    putc(*c & 0xFF, stdout);
+                    if (*c >> 8)
+                        putc(*c >> 8, stdout);
+                    ++c;
+                }
+                fflush(stdout);
+                break;
+            }
+        case TRAP_HALT:
+            puts("HALT");
+            fflush(stdout);
+            running = 0;
+            break;
+        default:
+            abort();
+            break; 
+    }
+
+}
+
+void read_image_file(FILE* file)
+{
+    // origin dictates where to place the image in memory
+    uint16_t origin;
+    fread(&origin, sizeof(origin), 1, file);
+    origin = swap16(origin);
+
+    uint16_t max_read = MEMORY_MAX - origin;
+    uint16_t *p = memory + origin;
+    size_t read = fread(p, sizeof(uint16_t), max_read, file);
+
+    // swap LC-3 big-endian to more common little-endian
+    while (read-- > 0)
+    {
+        *p = swap16(*p);
+        ++p;
+    }
+}
+
+int read_image(const char* image_path)
+{
+    FILE* fp = fopen(image_path, "rb");
+    if (!fp)
+        return 0;
+    read_image_file(fp);
+    fclose(fp);
+    return 1;
+}
+
+uint16_t swap16(uint16_t x)
+{
+    return (x << 8) | (x >> 8); 
+}
+
+void mem_write(uint16_t address, uint16_t val)
+{
+    memory[address] = val;
+}
+
+uint16_t mem_read(uint16_t address)
+{
+    if (address == MR_KBSR)
+    {
+        if (check_key())
+        {
+            memory[MR_KBSR] = (1 << 15);
+            memory[MR_KBDR] = getchar();
+        }
+        else
+        {
+            memory[MR_KBSR] = 0;
+        }
+    }
+
+    return memory[address];
+}
+
+void disable_input_buffering()
+{
+    tcgetattr(STDIN_FILENO, &original_tio);
+    struct termios new_tio = original_tio;
+    new_tio.c_lflag &= ~ICANON & ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+}
+
+void restore_input_buffering()
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &original_tio);
+}
+
+uint16_t check_key()
+{
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(STDIN_FILENO, &readfds);
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+    return select(1, &readfds, NULL, NULL, &timeout) != 0;
+}
+
+void handle_interrupt(int signal)
+{
+    restore_input_buffering();
+    printf("\n");
+    exit(-2);
 }

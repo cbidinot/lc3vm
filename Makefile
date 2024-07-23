@@ -1,4 +1,4 @@
-CMP = gcc
+CMP = gcc 
 MAIN = vm
 FUNC = vmfunc
 EXEC = lc3vm
