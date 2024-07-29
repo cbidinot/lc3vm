@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/termios.h>
+#include <sys/time.h>
 
+// convert a number with bit_count bits to 16 bits
 uint16_t sign_extend(uint16_t x, int bit_count)
 {
     if (x >> (bit_count - 1))
@@ -11,6 +13,7 @@ uint16_t sign_extend(uint16_t x, int bit_count)
     return x;
 }
 
+// update the condition flag registry based on registry "r"
 void update_flags(uint16_t r)
 {
     if (!reg[r])
@@ -261,6 +264,7 @@ void read_image_file(FILE* file)
     fread(&origin, sizeof(origin), 1, file);
     origin = swap16(origin);
 
+    // use origin location to determine max size
     uint16_t max_read = MEMORY_MAX - origin;
     uint16_t *p = memory + origin;
     size_t read = fread(p, sizeof(uint16_t), max_read, file);
@@ -273,6 +277,7 @@ void read_image_file(FILE* file)
     }
 }
 
+// open file to read image
 int read_image(const char* image_path)
 {
     FILE* fp = fopen(image_path, "rb");
@@ -283,6 +288,7 @@ int read_image(const char* image_path)
     return 1;
 }
 
+// swap bytes in 16 bit number to switch between big-endian and little-endian
 uint16_t swap16(uint16_t x)
 {
     return (x << 8) | (x >> 8); 
@@ -295,10 +301,12 @@ void mem_write(uint16_t address, uint16_t val)
 
 uint16_t mem_read(uint16_t address)
 {
+    // check if it must read from the keyboard
     if (address == MR_KBSR)
     {
         if (check_key())
         {
+            // set that a key has been pressed
             memory[MR_KBSR] = (1 << 15);
             memory[MR_KBDR] = getchar();
         }
@@ -310,6 +318,8 @@ uint16_t mem_read(uint16_t address)
 
     return memory[address];
 }
+
+// GUIDE FUNCTIONS //
 
 void disable_input_buffering()
 {

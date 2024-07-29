@@ -6,19 +6,6 @@
 #define MEMORY_MAX (1 << 16)
 #define PC_START 0x3000
 
-
-
-#include <signal.h>
-/* unix only */
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/termios.h>
-#include <sys/mman.h>
-
-
 // Registers
 typedef enum
 {
